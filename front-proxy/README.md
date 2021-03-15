@@ -6,7 +6,7 @@
 
 在本例中一共部署了3个容器：
 * front-envoy 容器作为 API 网关，所有的入向请求都通过 front-envoy 容器进行路由。front-envoy 容器暴露了 8080，8443 端口分别来接受 HTTP，HTTPS 请求，并根据路径分别将它们路由到对应的服务上，以及通过 8001 端口来接受 Envoy 自带的 admin 服务。
-* 分别部署 service1 和 service2 两个Flask 应用程序，在该容器中启动 Envoy 进程， 通过 loopback 地址将请求路由到 Flask 应用程序。
+* 分别部署 service1 和 service2 两个Flask 应用程序，在该容器中启动 Envoy 服务， 通过 loopback 地址将请求路由到 Flask 应用程序。
 
 ## service1 & service2 服务代码
 service1 和 service2 都使用相同的代码启动 Flask 服务，通过 SERVICE_NAME 这个环境变量在访问的时候可以区分服务是 service1 还是 service2 。
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 ```
 
 ## service1 & service2 的 envoy 服务配置
-在 service1 和 service2 容器中还启动了 envoy 进程，外部客户端（本例中是 front-envoy 容器）访问 service1 和 service2 时是去访问 envoy , 然后由 envoy 通过 loopback 地址 将请求路由到 Flask 应用程序。
+在 service1 和 service2 容器中还启动了 envoy 服务，外部客户端（本例中是 front-envoy 容器）访问 service1 和 service2 时是去访问 envoy , 然后由 envoy 通过 loopback 地址 将请求路由到 Flask 应用程序。
 ```yaml
 # service-envoy.yaml
 static_resources:  #定义静态资源
@@ -114,7 +114,7 @@ ENTRYPOINT ["/bin/sh", "/usr/local/bin/start_service.sh"]
 ```
 
 ## front-envoy envoy 配置文件
-front-envoy 容器中只有 envoy 服务， 负责接收所有入访的流量，并且根据URI请求路径分发给service1 或者 service2 。 另外还配置了https加密，生成了证书和私钥。
+front-envoy 容器中只有 envoy 服务， 负责接收所有入访的流量，并且根据URI请求路径分发给service1 或者 service2 。另外还配置了 HTTPS 加密，生成了证书和私钥。
 ```yaml
 # front-envoy.yaml
 static_resources:
@@ -390,6 +390,7 @@ root_service2_1      /bin/sh /usr/local/bin/sta ...   Up      10000/tcp, 8000/tc
 ```
 ### 步骤四：测试 Envoy 的路由能力
 你现在可以通过 front-envoy 向两个服务发送请求。
+
 向 service1 发请求：
 
 ```sh
@@ -499,6 +500,7 @@ Hello from behind Envoy (service 1)! hostname: e60ba6d0671c resolvedhostname: 17
 在示例配置中 admin 绑定到了 8001 端口。
 
 我们可以通过 curl 它获得有用的信息：
+
 ![](https://chengzw258.oss-cn-beijing.aliyuncs.com/Article/20210315233403.png)
 
 ```sh
