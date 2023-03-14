@@ -1,0 +1,89 @@
+version: '3.3'
+
+services:
+  envoy:
+    image: envoyproxy/envoy-alpine:v1.21.4
+    volumes:
+    - ./front-envoy.yaml:/etc/envoy/envoy.yaml
+    networks:
+      envoymesh:
+        ipv4_address: 172.31.18.12
+        aliases:
+        - front-proxy
+    depends_on:
+    - webserver01-sidecar
+    - webserver02-sidecar
+    - webserver03-sidecar
+    privileged: true
+
+  webserver01-sidecar:
+    image: envoyproxy/envoy-alpine:v1.21.4
+    volumes:
+    - ./envoy-sidecar-proxy.yaml:/etc/envoy/envoy.yaml
+    hostname: red
+    privileged: true
+    networks:
+      envoymesh:
+        ipv4_address: 172.31.18.11
+        aliases:
+        - myservice
+
+  webserver01:
+    image: ikubernetes/demoapp:v1.0
+    environment:
+      - PORT=8080
+      - HOST=127.0.0.1
+    network_mode: "service:webserver01-sidecar"
+    depends_on:
+    - webserver01-sidecar
+    privileged: true
+
+  webserver02-sidecar:
+    image: envoyproxy/envoy-alpine:v1.21.4
+    volumes:
+    - ./envoy-sidecar-proxy.yaml:/etc/envoy/envoy.yaml
+    hostname: blue
+    networks:
+      envoymesh:
+        ipv4_address: 172.31.18.13
+        aliases:
+        - myservice
+    privileged: true
+  webserver02:
+    image: ikubernetes/demoapp:v1.0
+    environment:
+      - PORT=8080
+      - HOST=127.0.0.1
+    network_mode: "service:webserver02-sidecar"
+    depends_on:
+    - webserver02-sidecar
+    privileged: true
+
+  webserver03-sidecar:
+    image: envoyproxy/envoy-alpine:v1.21.4
+    volumes:
+    - ./envoy-sidecar-proxy.yaml:/etc/envoy/envoy.yaml
+    hostname: blue
+    networks:
+      envoymesh:
+        ipv4_address: 172.31.18.14
+        aliases:
+        - myservice
+    privileged: true
+  webserver03:
+    image: ikubernetes/demoapp:v1.0
+    environment:
+      - PORT=8080
+      - HOST=127.0.0.1
+    network_mode: "service:webserver03-sidecar"
+    depends_on:
+    - webserver03-sidecar
+    privileged: true
+
+networks:
+  envoymesh:
+    driver: bridge 
+    ipam:
+      config:
+        - subnet: 172.31.18.0/16 
+
